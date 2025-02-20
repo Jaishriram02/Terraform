@@ -1,0 +1,70 @@
+1.Steps to Make an S3 Bucket Public in Terraform
+a.Create an S3 bucket
+b.Disable "Block Public Access"
+c. Attach a public bucket policy
+
+Create the S3 Bucket (s3.tf)
+resource "aws_s3_bucket" "public_bucket" {
+  bucket        = "my-public-s3-bucket"
+  force_destroy = true  # Allows deletion even if files exist
+
+  tags = {
+    Name        = "My Public Bucket"
+    Environment = "Development"
+  }
+}
+
+Disable "Block Public Access" (public_access.tf)
+
+resource "aws_s3_bucket_public_access_block" "public_access" {
+  bucket = aws_s3_bucket.public_bucket.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+Attach a Public Read Policy (policy.tf)
+
+resource "aws_s3_bucket_policy" "public_read_policy" {
+  bucket = aws_s3_bucket.public_bucket.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject",
+        Effect    = "Allow",
+        Principal = "*",
+        Action    = "s3:GetObject",
+        Resource  = "arn:aws:s3:::${aws_s3_bucket.public_bucket.id}/*"
+      }
+    ]
+  })
+}
+
+Verification:
+
+Upload a File and Make It Public
+# aws s3 cp test-file.txt s3://my-public-s3-bucket/
+
+Get the Public URL
+
+# echo "https://my-public-s3-bucket.s3.amazonaws.com/test-file.txt"
+
+once deployed s3 bucket terraform code below policy in under bucket. This is not write
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::sjr.xyz/*"
+        }
+    ]
+}
+
+

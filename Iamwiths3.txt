@@ -1,0 +1,78 @@
+Terraform configuration to create an AWS IAM User, IAM Policy, and attach permissions for S3 access.
+1️⃣ Create an S3 Bucket with Private Access
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_s3_bucket" "my_bucket" {
+  bucket = "my-secure-bucket-12345"  # Change bucket name (must be unique)
+}
+
+resource "aws_s3_bucket_versioning" "versioning" {
+  bucket = aws_s3_bucket.my_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "public_access" {
+  bucket = aws_s3_bucket.my_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+This creates a private S3 bucket with versioning enabled and blocks public access.
+
+2️⃣ Create an IAM User with S3 Permissions
+
+resource "aws_iam_user" "s3_user" {
+  name = "s3-access-user"
+}
+
+resource "aws_iam_policy" "s3_read_write_policy" {
+  name        = "S3ReadWritePolicy"
+  description = "IAM policy to allow read and write access to S3 bucket"
+  
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = "arn:aws:s3:::${aws_s3_bucket.my_bucket.id}"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = "arn:aws:s3:::${aws_s3_bucket.my_bucket.id}/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_user_policy_attachment" "s3_attach" {
+  user       = aws_iam_user.s3_user.name
+  policy_arn = aws_iam_policy.s3_read_write_policy.arn
+}
+
+This creates an IAM user (s3-access-user) with read and write permissions for the S3 bucket.
+📌 The IAM policy allows the user to:
+
+List objects in the bucket (s3:ListBucket)
+Read, write, and delete objects (s3:GetObject, s3:PutObject, s3:DeleteObject)
+
+3️⃣ Generate IAM User Credentials
+
+resource "aws_iam_access_key" "s3_user_key" {
+  user = aws_iam_user.s3_user.name
+}
+
+This will create an access key and secret key for the IAM user, allowing programmatic access.
+
+🔹 4️⃣ Apply Terraform Code
+
+terraform init
+terraform apply -auto-approve
+
