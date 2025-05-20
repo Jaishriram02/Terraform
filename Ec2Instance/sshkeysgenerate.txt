@@ -1,0 +1,4 @@
+🆕 Generate a new SSH key (if needed)
+If you don't have a .pub file, you can generate one using Git Bash or WSL:
+ssh-keygen -t rsa -b 2048 -f ~/.ssh/sairam
+public_key_path = "~/.ssh/sairam.pub"
